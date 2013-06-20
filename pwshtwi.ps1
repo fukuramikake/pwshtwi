@@ -240,10 +240,12 @@ function Command($api){
                     $source = replaceSource $tweet["retweeted_status"]["source"]
                     Write-Host($tweet["retweeted_status"]["created_at"] + " from " + $source) -ForegroundColor Gray
                 }
-                Write-Host($tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
-                Write-Host($tweet["text"]) -BackgroundColor DarkBlue
-                $source = replaceSource $tweet["source"]
-                Write-Host($tweet["created_at"] + " from " + $source)  -ForegroundColor Gray
+                else{
+                    Write-Host($tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
+                    Write-Host($tweet["text"]) -BackgroundColor DarkBlue
+                    $source = replaceSource $tweet["source"]
+                    Write-Host($tweet["created_at"] + " from " + $source)  -ForegroundColor Gray
+                }
                 <#
             }
             #>
@@ -271,5 +273,8 @@ $authinfo = Login $req
 $rest = &$RestApi $req $authinfo["user_id"] $authinfo["oauth_token"] $authinfo["screen_name"] $authinfo["oauth_token_secret"]
 
 Command $rest
+
+
+
 
 
