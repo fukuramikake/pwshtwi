@@ -240,9 +240,9 @@ $RestApi = {
                                 $params["trim_user"] = $p[1].ToLower()
                             }
                         }
-                        "exluce_replies"{
+                        "exclude_replies "{
                             if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
-                                $params["exluce_replies"] = $p[1].ToLower()
+                                $params["exclude_replies "] = $p[1].ToLower()
                             }
                         }
                         default {
