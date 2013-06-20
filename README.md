@@ -21,5 +21,10 @@ Windows PowerShell を立ち上げ、スクリプトを実行してください�
 ## home
 homeコマンドを入力すると、statuses/home_timeline RestAPIをコールして、取得結果を適当に表示します。
 もっと前を見る、みたいな便利なコマンドはまだ無い。
+# ToDo
+* 表示するタイムラインの件数を指定できるようにする(count)
+* もっと前を見れるようにする(max_idを使えばいける…か?)
+* @を見れるようにする(statuses/mentions_timeline)
+* @を送れるようにする(statuses/update) けど、in_reply_to_status_idはどうやって指定するようにするか…
 # 他
 そのうちやる。
