@@ -209,6 +209,16 @@ $RestApi = {
 	| Add-Member -MemberType NoteProperty -Name UserId     -Force -Value $user_id     -PassThru `
 	| Add-Member -MemberType NoteProperty -Name OauthToken -Force -Value $oauth_token -PassThru `
 	| Add-Member -MemberType NoteProperty -Name ScreenName -Force -Value $screen_name -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name AuthParams        -Value {
+        return @{
+            "oauth_consumer_key" = $request.ConsumerKey;
+            "oauth_nonce" = [System.Guid]::NewGuid().ToString();
+            "oauth_signature_method" = "HMAC-SHA1";
+            "oauth_token" = $RestApi.OAuthToken;
+            "oauth_timestamp" = $request.GetTimeStamp();
+            "oauth_version" = "1.0"
+            }
+      } -PassThru `
     | Add-Member -MemberType ScriptMethod -Name HomeTL            -Value {
         param($commands)
         $params = @{}
@@ -252,18 +262,53 @@ $RestApi = {
                 }
             }
         }
-
         $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/home_timeline.json",
-        @{
-            "oauth_consumer_key" = $request.ConsumerKey;
-            "oauth_nonce" = [System.Guid]::NewGuid().ToString();
-            "oauth_signature_method" = "HMAC-SHA1";
-            "oauth_token" = $RestApi.OAuthToken;
-            "oauth_timestamp" = $request.GetTimeStamp();
-            "oauth_version" = "1.0"
-        }, $params)
+        $RestApi.AuthParams(), $params)
+        return $result
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name Mentions          -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "count" {
+                            $i = $p[1] -as [Int32]
+                            if($i -ge 1 -and $i -le 200){
+                                $params["count"] = $i
+                            }
+                        }
+                        "since_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["since_id"] = $i
+                            }
+                        }
+                        "max_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["max_id"] = $i
+                            }
+                        }
+                        "trim_user" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["trim_user"] = $p[1].ToLower()
+                            }
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/mentions_timeline.json",
+        $RestApi.AuthParams(), $params)
         return $result
       } -PassThru
+
 }
 
 function Command($api){
@@ -277,8 +322,7 @@ function Command($api){
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
 
-            <# ToDo:たぶん動かない #>
-            if($obj["errors"].Length -lt 0){
+            if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
                 }
@@ -310,6 +354,35 @@ function Command($api){
                 }
             }
         }
+        "mentions" {
+            $tl = $api.Mentions($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tl)
+
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                for($i = $obj.Length - 1; $i -gt -1; $i--){
+                    $tweet = $obj[$i]
+                <#
+                foreach($tweet in $obj){#>
+                    Write-Host($tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
+                    Write-Host($tweet["text"]) -BackgroundColor DarkBlue
+                    $source = ReplaceSource $tweet["source"]
+                    $dt = ConvertTimeZone $tweet["created_at"]
+                    Write-Host($dt + " from " + $source + " id:" + $tweet["id"])  -ForegroundColor Gray
+                    <#
+                }
+                #>
+                }
+            }
+
+
+        }
+
         default{
             Write-Host "input valid command. ex) > home"
         }
