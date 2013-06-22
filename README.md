@@ -50,10 +50,9 @@ in_reply_to_status_idを指定すると、特定のtweetへのリプライとし
 一応、statusにsplitされうる文字列が入っていた場合も、続きのコマンドでstatusやin_reply_to_status_idが現れるまでは、半角スペースで連結して投げてくれる（ハズ）です。
 
 # ToDo
-* @を見れるようにする(statuses/mentions_timeline)
-* @を送れるようにする(statuses/update) けど、in_reply_to_status_idはどうやって指定するようにするか…
 * タイムラインをもうちょい見やすく
 * ユーザー情報を表示できるように
+* RTとFavにも対応させる
 * ほとんどエラートラップしてないですね
 * idのコピペ大変なんだがどうにかならんかのー
 
