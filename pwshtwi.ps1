@@ -57,6 +57,11 @@ $Request = {
       } -PassThru `
     | Add-Member -MemberType ScriptMethod -Name PostRequest -Value{
         param($url, $auth, $contents)
+        if($contents.Length -gt 0){
+            foreach($key in $contents.keys){
+                $auth[$key] = $Request.UrlEncode($contents[$key])
+            }
+        }
         $signature = $Request.GetHMACSHA(
           $Request.GetSignKey(),
           $Request.GetSignatureBaseString("POST",$url,$auth)
@@ -88,7 +93,7 @@ $Request = {
         if($contents.Length -gt 0){
             foreach($key in $contents.keys){
                 $query += $Request.UrlEncode($key) + "=" + $Request.UrlEncode($contents[$key]) + "&"
-                $auth[$key] = $contents[$key]
+                $auth[$key] = $Request.UrlEncode($contents[$key])
             }
         }
         $signature = $Request.GetHMACSHA(
@@ -307,8 +312,50 @@ $RestApi = {
         $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/mentions_timeline.json",
         $RestApi.AuthParams(), $params)
         return $result
-      } -PassThru
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name Update -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "status" {
+                            $params["status"] = $p[1]
+                            $ci = $index + 1
+                            for($ci; $ci -lt $commands.Length; $ci++){
+                                $tq = $commands[$ci].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                                $ignore = @("status","in_reply_to_status_id","lat","long","place_id","display_coordinates", "trim_user")
+                                if( -not ($ignore -contains ([string]$tq[0]).ToLower()) ){
+                                    $params["status"] += " " + $commands[$ci]
+                                    $index++
+                                }
+                            }
+                        }
+                        "in_reply_to_status_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["in_reply_to_status_id"] = $i
+                            }
+                        }
+                        "trim_user" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["trim_user"] = $p[1].ToLower()
+                            }
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.PostRequest("https://api.twitter.com/1.1/statuses/update.json",
+        $RestApi.AuthParams(), $params)
+        return $result
 
+      } -PassThru
 }
 
 function Command($api){
@@ -379,9 +426,22 @@ function Command($api){
                 #>
                 }
             }
-
-
         }
+        "update" {
+            $tl = $api.Update($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tl)
+
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                echo $obj
+            }
+        }
+
 
         default{
             Write-Host "input valid command. ex) > home"

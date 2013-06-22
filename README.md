@@ -31,6 +31,24 @@ countとsince_idとmax_idに対応。trim_userとexclude_repliesも書いてあ�
 
 idはPowerShell上でマウスで範囲選択して右クリックでコピー、右クリックで貼り付けできます。
 
+## mentions
+mentionsコマンドを入力すると、statuses/mentions_timeline RestAPIをコールして、取得結果を適当に表示します。
+### option
+countとsince_idとmax_idに対応。trim_userも書いてあるけど動くかどうかは確認してない。
+
+例) Input command.:mentions
+
+## update
+updateコマンドを入力すると、statuses/update RestAPIをコールして、つぶやきを投稿します。
+### option
+statusとin_reply_to_status_idに対応。trim_userも書いてあるけど動くかどうかは確認してない。
+
+例) Input command.:update status:これはテストです in_reply_to_status_id:123456789012345678
+
+in_reply_to_status_idを指定すると、特定のtweetへのリプライとして送信することができます。
+
+一応、statusにsplitされうる文字列が入っていた場合も、続きのコマンドでstatusやin_reply_to_status_idが現れるまでは、半角スペースで連結して投げてくれる（ハズ）です。
+
 # ToDo
 * @を見れるようにする(statuses/mentions_timeline)
 * @を送れるようにする(statuses/update) けど、in_reply_to_status_idはどうやって指定するようにするか…
