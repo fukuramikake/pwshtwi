@@ -49,10 +49,27 @@ in_reply_to_status_idを指定すると、特定のtweetへのリプライとし
 
 一応、statusにsplitされうる文字列が入っていた場合も、続きのコマンドでstatusやin_reply_to_status_idが現れるまでは、半角スペースで連結して投げてくれる（ハズ）です。
 
+## rt
+rtコマンドを入力すると、statuses/retweet/:id RestAPIをコールして、指定のつぶやきをRetweetします。
+### option
+idに対応。これは必須です。
+
+例) Input command.:rt id:123456789012345678
+
+## fav
+favコマンドを入力すると、favorites/create RestAPIをコールして、指定のつぶやきをお気に入りにします。
+### option
+idに対応。これは必須です。
+
+例) Input command.:fav id:123456789012345678
+
+# 既知の不具合
+* update status:hogehoge で、つぶやき文字列に半角の()を使うとAuthenticateに失敗する。その他記号とかにもダメなヤツあるかも。
+
+
 # ToDo
 * タイムラインをもうちょい見やすく
 * ユーザー情報を表示できるように
-* RTとFavにも対応させる
 * ほとんどエラートラップしてないですね
 * idのコピペ大変なんだがどうにかならんかのー
 
