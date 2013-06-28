@@ -68,22 +68,25 @@ $Request = {
           )
         $header = "OAuth "
         foreach($key in $auth.keys | sort){
-            $value = $Request.UrlEncode($auth[$key])
-            $header += $key + "=""" + $value + ""","
+            if($key.StartsWith("oauth_")){
+                $value = $Request.UrlEncode($auth[$key])
+                $header += $key + "=""" + $value + ""","
+            }
         }
         $header += "oauth_signature=""" + $signature + """"
 
-        [System.Collections.Generic.List[System.Collections.Generic.KeyValuePair`2[System.String,System.String]]]$post = `
-          New-Object 'System.Collections.Generic.List[System.Collections.Generic.KeyValuePair`2[System.String,System.String]]'
+        [string]$post = "";
         foreach($key in $contents.keys | sort){
-            $value = New-Object 'System.Collections.Generic.KeyValuePair`2[System.String,System.String]' `
-            -ArgumentList @($key,$contents[$key])
-            $post.Add($value)
+            $post += $Request.UrlEncode($key) + "=" + $Request.UrlEncode($contents[$key]) + "&"
+        }
+        if($post -ne ""){
+            $post = $post.Substring(0,$post.Length - 1)
         }
 
         $client = New-Object -TypeName System.Net.Http.HttpClient
         $client.DefaultRequestHeaders.Authorization = $header
-        $httpContent = New-Object -TypeName System.Net.Http.FormUrlEncodedContent (,$post)
+
+        $httpContent = New-Object -TypeName System.Net.Http.StringContent($post, [System.Text.Encoding]::UTF8, "application/x-www-form-urlencoded")
         $response = $client.PostAsync($url, $httpContent).Result
         return $response.Content.ReadAsStringAsync().Result
       } -PassThru `
