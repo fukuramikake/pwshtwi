@@ -63,6 +63,14 @@ idに対応。これは必須です。
 
 例) Input command.:fav id:123456789012345678
 
+## show
+showコマンドを入力すると、statuses/show/:id RestAPIをコールして、指定のつぶやきを表示します。
+in_reply_to_status_idがある場合は、繰り返しで読み込んで表示します（会話を表示）
+### option
+id以外にも対応しているつもりだけどたぶん動かない。
+
+例) Input command.:show id:123456789012345678
+
 # 既知の不具合
 * たぶん無い
 
