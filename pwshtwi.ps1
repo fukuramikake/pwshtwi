@@ -1,4 +1,4 @@
-﻿[System.Reflection.Assembly]::LoadWithPartialName("System.Net.Http")
+[System.Reflection.Assembly]::LoadWithPartialName("System.Net.Http")
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web")
 [System.Reflection.Assembly]::LoadWithPartialName("System.Security")
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web.Extensions")
@@ -75,6 +75,7 @@ $Request = {
         }
         $header += "oauth_signature=""" + $signature + """"
 
+
         [string]$post = "";
         foreach($key in $contents.keys | sort){
             $post += $Request.UrlEncode($key) + "=" + $Request.UrlEncode($contents[$key]) + "&"
@@ -83,8 +84,10 @@ $Request = {
             $post = $post.Substring(0,$post.Length - 1)
         }
 
+
         $client = New-Object -TypeName System.Net.Http.HttpClient
         $client.DefaultRequestHeaders.Authorization = $header
+
 
         $httpContent = New-Object -TypeName System.Net.Http.StringContent($post, [System.Text.Encoding]::UTF8, "application/x-www-form-urlencoded")
         $response = $client.PostAsync($url, $httpContent).Result
@@ -114,15 +117,19 @@ $Request = {
         }
         $header += "oauth_signature=""" + $signature + """"
 
+
         $client = New-Object -TypeName System.Net.Http.HttpClient
         $client.DefaultRequestHeaders.Authorization = $header
         $response = $client.GetAsync($url).Result
         return $response.Content.ReadAsStringAsync().Result
       } -PassThru 
 
+
 }
 
+
 function Login($request){
+
 
     <# Get Request Token #>
     $request.OauthTokenSecret = ""
@@ -134,6 +141,7 @@ function Login($request){
             "oauth_version" = "1.0"
         }, @{})
 
+
     if( ($result -ne $null) -and ($result -ne "") ){
         $oauth_token = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token=(?<str>[0-9a-zA-Z]+)").Groups["str"].Value
         $oauth_token_secret = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token_secret=(?<str>[0-9a-zA-Z]+)").Groups["str"].Value
@@ -143,11 +151,14 @@ function Login($request){
             return
         }
 
+
         <# Input pin #>
         $url = $request.AuthorizeUrl + "?oauth_token=" + $oauth_token
         $ie = OpenInternetExplorer $url
         $pin = Read-Host "Input pin code."
         $ie.Quit()
+
+
 
 
         $request.OauthTokenSecret = $oauth_token_secret
@@ -161,6 +172,7 @@ function Login($request){
             "oauth_timestamp" = $request.GetTimeStamp();
             "oauth_version" = "1.0"
         }, @{})
+
 
         if( ($result -ne $null) -and ($result -ne "") ){
             $authinfo = @{
@@ -181,11 +193,13 @@ function Login($request){
                 return $authinfo
             }
 
+
         }
         else{
             <# Retry #>
             Login($request)
         }
+
 
     }
     else{
@@ -194,6 +208,7 @@ function Login($request){
     }
 }
 
+
 function OpenInternetExplorer($url){
     $ie = New-Object -ComObject InternetExplorer.Application
     $ie.Visible = $true
@@ -201,15 +216,18 @@ function OpenInternetExplorer($url){
     return $ie
 }
 
+
 function ReplaceSource($source){
     return [System.Text.RegularExpressions.Regex]::Match($source,"rel=""nofollow"">(?<str>.+)</a>").Groups["str"].Value;
 }
+
 
 function ConvertTimeZone($twitterDate){
     return [string][System.DateTimeOffset]::ParseExact($twitterDate, "ddd MMM dd HH:mm:ss zzz yyyy", `
         [System.Globalization.CultureInfo]::InvariantCulture).LocalDateTime
     
 }
+
 
 $RestApi = {
 	param($request, [string]$user_id, [string]$oauth_token, [string]$screen_name, [string]$oauth_token_secret)
@@ -358,6 +376,7 @@ $RestApi = {
         $RestApi.AuthParams(), $params)
         return $result
 
+
       } -PassThru `
     | Add-Member -MemberType ScriptMethod -Name Retweet -Value {
         param($commands)
@@ -402,12 +421,53 @@ $RestApi = {
         $result = $request.PostRequest("https://api.twitter.com/1.1/favorites/create.json",
         $RestApi.AuthParams(), $params)
         return $result
-      } -PassThru
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name Show -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["id"] = $i
+                            }
+                        }
+                        "trim_user" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["trim_user"] = $p[1].ToLower()
+                            }
+                        }
+                        "include_my_retweet" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["include_my_retweet"] = $p[1].ToLower()
+                            }
+                        }
+                        "include_entities" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["include_entities"] = $p[1].ToLower()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/show.json",
+        $RestApi.AuthParams(), $params)
+        return $result
+      } -PassThru 
+
+
 }
+
 
 function Command($api){
     $command = Read-Host "Input command."
     $commands = -split $command
+
 
     switch($commands[0].ToLower())
     {
@@ -415,6 +475,7 @@ function Command($api){
             $tl = $api.HomeTL($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
+
 
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
@@ -453,6 +514,7 @@ function Command($api){
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
 
+
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
@@ -479,6 +541,7 @@ function Command($api){
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
 
+
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
@@ -492,6 +555,7 @@ function Command($api){
             $tl = $api.Retweet($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
+
 
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
@@ -507,6 +571,7 @@ function Command($api){
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
 
+
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
@@ -516,16 +581,47 @@ function Command($api){
                 echo $obj["text"]
             }
         }
+        "show" {
+            $tw = $api.Show($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tw)
+
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                function Recurrence($tweet){
+                        Write-Host($tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
+                        Write-Host($tweet["text"]) -BackgroundColor DarkBlue
+                        $source = ReplaceSource $tweet["source"]
+                        $dt = ConvertTimeZone $tweet["created_at"]
+                        Write-Host($dt + " from " + $source + " id:" + $tweet["id"])  -ForegroundColor Gray
+                        if($tweet["in_reply_to_status_id"].Length -gt 0){
+                            $reply = @("show"; "id:" + $tweet["in_reply_to_status_id"])
+                            $tw = $api.Show($reply)
+                            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+                            $in = $serializer.DeserializeObject($tw)
+                            if($in["errors"].Length -gt 0){
+                                foreach($error in $in["errors"]){
+                                    Write-Host $error["message"]
+                                }
+                            }
+                            else{
+                                Recurrence $in
+                            }
+                        }
+                }
+                Recurrence $obj
+            }
+        }
         default{
             Write-Host "input valid command. ex) > home"
         }
     }
     Command $api
-
-
-
 }
-
 
 <# Enter your developer setting  #>
 $req = &$Request "{Consumer key}" "{Consumer secret}" `
