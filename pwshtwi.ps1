@@ -505,13 +505,13 @@ $RestApi = {
                 $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
                 if($p.Length -eq 2){
                     switch(([string]$p[0]).ToLower()){
-                        "user_id " {
+                        "user_id" {
                             $i = $p[1] -as [Int64]
                             if($i){
                                 $params["user_id"] = $i
                             }
                         }
-                        "screen_name " {
+                        "screen_name" {
                             $params["screen_name"] = $p[1]
                         }
                         "since_id" {
@@ -526,7 +526,7 @@ $RestApi = {
                                 $params["count"] = $i
                             }
                         }
-                        "max_id " {
+                        "max_id" {
                             $i = $p[1] -as [Int64]
                             if($i){
                                 $params["max_id"] = $i
@@ -755,6 +755,7 @@ function Command($api){
     }
     Command $api
 }
+
 
 <# Enter your developer setting  #>
 $req = &$Request "{Consumer key}" "{Consumer secret}" `
