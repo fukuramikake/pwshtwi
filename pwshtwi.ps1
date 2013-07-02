@@ -76,6 +76,8 @@ $Request = {
         $header += "oauth_signature=""" + $signature + """"
 
 
+
+
         [string]$post = "";
         foreach($key in $contents.keys | sort){
             $post += $Request.UrlEncode($key) + "=" + $Request.UrlEncode($contents[$key]) + "&"
@@ -85,8 +87,12 @@ $Request = {
         }
 
 
+
+
         $client = New-Object -TypeName System.Net.Http.HttpClient
         $client.DefaultRequestHeaders.Authorization = $header
+
+
 
 
         $httpContent = New-Object -TypeName System.Net.Http.StringContent($post, [System.Text.Encoding]::UTF8, "application/x-www-form-urlencoded")
@@ -118,6 +124,8 @@ $Request = {
         $header += "oauth_signature=""" + $signature + """"
 
 
+
+
         $client = New-Object -TypeName System.Net.Http.HttpClient
         $client.DefaultRequestHeaders.Authorization = $header
         $response = $client.GetAsync($url).Result
@@ -125,10 +133,16 @@ $Request = {
       } -PassThru 
 
 
+
+
 }
 
 
+
+
 function Login($request){
+
+
 
 
     <# Get Request Token #>
@@ -142,6 +156,8 @@ function Login($request){
         }, @{})
 
 
+
+
     if( ($result -ne $null) -and ($result -ne "") ){
         $oauth_token = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token=(?<str>[0-9a-zA-Z]+)").Groups["str"].Value
         $oauth_token_secret = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token_secret=(?<str>[0-9a-zA-Z]+)").Groups["str"].Value
@@ -152,11 +168,17 @@ function Login($request){
         }
 
 
+
+
         <# Input pin #>
         $url = $request.AuthorizeUrl + "?oauth_token=" + $oauth_token
         $ie = OpenInternetExplorer $url
         $pin = Read-Host "Input pin code."
         $ie.Quit()
+
+
+
+
 
 
 
@@ -172,6 +194,8 @@ function Login($request){
             "oauth_timestamp" = $request.GetTimeStamp();
             "oauth_version" = "1.0"
         }, @{})
+
+
 
 
         if( ($result -ne $null) -and ($result -ne "") ){
@@ -194,11 +218,15 @@ function Login($request){
             }
 
 
+
+
         }
         else{
             <# Retry #>
             Login($request)
         }
+
+
 
 
     }
@@ -209,6 +237,8 @@ function Login($request){
 }
 
 
+
+
 function OpenInternetExplorer($url){
     $ie = New-Object -ComObject InternetExplorer.Application
     $ie.Visible = $true
@@ -217,9 +247,13 @@ function OpenInternetExplorer($url){
 }
 
 
+
+
 function ReplaceSource($source){
     return [System.Text.RegularExpressions.Regex]::Match($source,"rel=""nofollow"">(?<str>.+)</a>").Groups["str"].Value;
 }
+
+
 
 
 function ConvertTimeZone($twitterDate){
@@ -227,6 +261,8 @@ function ConvertTimeZone($twitterDate){
         [System.Globalization.CultureInfo]::InvariantCulture).LocalDateTime
     
 }
+
+
 
 
 $RestApi = {
@@ -276,9 +312,9 @@ $RestApi = {
                                 $params["trim_user"] = $p[1].ToLower()
                             }
                         }
-                        "exclude_replies "{
+                        "exclude_replies"{
                             if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
-                                $params["exclude_replies "] = $p[1].ToLower()
+                                $params["exclude_replies"] = $p[1].ToLower()
                             }
                         }
                         default {
@@ -377,6 +413,8 @@ $RestApi = {
         return $result
 
 
+
+
       } -PassThru `
     | Add-Member -MemberType ScriptMethod -Name Retweet -Value {
         param($commands)
@@ -458,15 +496,75 @@ $RestApi = {
         $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/show.json",
         $RestApi.AuthParams(), $params)
         return $result
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name UserTL -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "user_id " {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["user_id"] = $i
+                            }
+                        }
+                        "screen_name " {
+                            $params["screen_name"] = $p[1]
+                        }
+                        "since_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["since_id"] = $i
+                            }
+                        }
+                        "count" {
+                            $i = $p[1] -as [Int32]
+                            if($i -ge 1 -and $i -le 200){
+                                $params["count"] = $i
+                            }
+                        }
+                        "max_id " {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["max_id"] = $i
+                            }
+                        }
+                        "exclude_replies" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["exclude_replies"] = $p[1].ToLower()
+                            }
+                        }
+                        "contributor_details" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["contributor_details"] = $p[1].ToLower()
+                            }
+                        }
+                        "include_rts" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["include_rts"] = $p[1].ToLower()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/user_timeline.json",
+        $RestApi.AuthParams(), $params)
+        return $result
       } -PassThru 
-
-
 }
+
+
 
 
 function Command($api){
     $command = Read-Host "Input command."
     $commands = -split $command
+
+
 
 
     switch($commands[0].ToLower())
@@ -477,6 +575,8 @@ function Command($api){
             $obj = $serializer.DeserializeObject($tl)
 
 
+
+
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
@@ -485,8 +585,6 @@ function Command($api){
             else{
                 for($i = $obj.Length - 1; $i -gt -1; $i--){
                     $tweet = $obj[$i]
-                <#
-                foreach($tweet in $obj){#>
                     if($tweet.Keys.Contains("retweeted_status")){
                         Write-Host($tweet["retweeted_status"]["user"]["name"] + " @" + $tweet["retweeted_status"]["user"]["screen_name"] `
                         + " ReTweeted by " + $tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
@@ -503,9 +601,6 @@ function Command($api){
                         $dt = ConvertTimeZone $tweet["created_at"]
                         Write-Host($dt + " from " + $source + " id:" + $tweet["id"])  -ForegroundColor Gray
                     }
-                    <#
-                }
-                #>
                 }
             }
         }
@@ -513,7 +608,6 @@ function Command($api){
             $tl = $api.Mentions($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
-
 
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
@@ -542,6 +636,8 @@ function Command($api){
             $obj = $serializer.DeserializeObject($tl)
 
 
+
+
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
@@ -555,6 +651,8 @@ function Command($api){
             $tl = $api.Retweet($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
+
+
 
 
             if($obj["errors"].Length -gt 0){
@@ -572,6 +670,8 @@ function Command($api){
             $obj = $serializer.DeserializeObject($tl)
 
 
+
+
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
                     Write-Host $error["message"]
@@ -585,6 +685,7 @@ function Command($api){
             $tw = $api.Show($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tw)
+
 
             if($obj["errors"].Length -gt 0){
                 foreach($error in $obj["errors"]){
@@ -614,6 +715,38 @@ function Command($api){
                         }
                 }
                 Recurrence $obj
+            }
+        }
+        "usertl" {
+            $tw = $api.UserTL($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tw)
+
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                for($i = $obj.Length - 1; $i -gt -1; $i--){
+                    $tweet = $obj[$i]
+                    if($tweet.Keys.Contains("retweeted_status")){
+                        Write-Host($tweet["retweeted_status"]["user"]["name"] + " @" + $tweet["retweeted_status"]["user"]["screen_name"] `
+                        + " ReTweeted by " + $tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
+                        Write-Host($tweet["retweeted_status"]["text"]) -BackgroundColor DarkCyan
+                        $source = ReplaceSource $tweet["retweeted_status"]["source"]
+                        $dt = ConvertTimeZone $tweet["retweeted_status"]["created_at"]
+                        Write-Host($dt + " from " + $source + `
+                                   " id:" + $tweet["retweeted_status"]["id"]) -ForegroundColor Gray
+                    }
+                    else{
+                        Write-Host($tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
+                        Write-Host($tweet["text"]) -BackgroundColor DarkBlue
+                        $source = ReplaceSource $tweet["source"]
+                        $dt = ConvertTimeZone $tweet["created_at"]
+                        Write-Host($dt + " from " + $source + " id:" + $tweet["id"])  -ForegroundColor Gray
+                    }
+                }
             }
         }
         default{
