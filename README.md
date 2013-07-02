@@ -71,6 +71,15 @@ id以外にも対応しているつもりだけどたぶん動かない。
 
 例) Input command.:show id:123456789012345678
 
+## show
+usertlコマンドを入力すると、statuses/user_timeline RestAPIをコールして、指定のユーザのつぶやきを表示します。
+
+### option
+screen_nameに対応。他はテストしてません。
+
+例) Input command.:usertl screen_name:fukuramikake
+@は要らないです。
+
 # 既知の不具合
 * たぶん無い
 
