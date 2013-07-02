@@ -71,7 +71,7 @@ id以外にも対応しているつもりだけどたぶん動かない。
 
 例) Input command.:show id:123456789012345678
 
-## show
+## usertl
 usertlコマンドを入力すると、statuses/user_timeline RestAPIをコールして、指定のユーザのつぶやきを表示します。
 
 ### option
