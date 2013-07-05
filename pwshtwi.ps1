@@ -557,7 +557,29 @@ $RestApi = {
       } -PassThru 
 }
 
+<# 表示まわりはここに集める #>
+$Display = {
+	$MyInvocation.MyCommand.ScriptBlock `
+    | Add-Member -MemberType ScriptMethod -Name DisplayTweet -Value {
+        param($tweet)
 
+
+
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name ReplaceSource -Value {
+        param($source)
+        return [System.Text.RegularExpressions.Regex]::Match($source,"rel=""nofollow"">(?<str>.+)</a>").Groups["str"].Value;
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name ConvertTimeZone -Value {
+        param($twitterDate)
+        return [string][System.DateTimeOffset]::ParseExact($twitterDate, "ddd MMM dd HH:mm:ss zzz yyyy", `
+               [System.Globalization.CultureInfo]::InvariantCulture).LocalDateTime
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name UnEscape -Value {
+        param($status)
+        return $status -replace "&gt;",">" -replace "&lt;","<" -replace "&amp;","&"
+      } -PassThru
+}
 
 
 function Command($api){
