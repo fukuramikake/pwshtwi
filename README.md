@@ -78,7 +78,7 @@ usertlコマンドを入力すると、statuses/user_timeline RestAPIをコー�
 screen_nameに対応。他はテストしてません。
 
 例) Input command.:usertl screen_name:fukuramikake
-@は要らないです。
+@は要らないです。ついてても動くみたいですが。
 
 # 既知の不具合
 * たぶん無い
@@ -88,6 +88,7 @@ screen_nameに対応。他はテストしてません。
 * タイムラインをもうちょい見やすく
 * ユーザー情報を表示できるように
 * ほとんどエラートラップしてないですね
+* RTされたのとかFavされたのを見れるようにしたい
 * idのコピペ大変なんだがどうにかならんかのー
 * Enterで即Mention飛んでくのやめたい。キケン。
 
