@@ -522,7 +522,90 @@ $RestApi = {
         $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/retweets_of_me.json",
         $RestApi.AuthParams(), $params)
         return $result
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name RTs -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["id"] = $i
+                            }
+                        }
+                        "count" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["count"] = $i
+                            }
+                        }
+                        "trim_user" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["trim_user"] = $p[1].ToLower()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.GetRequest("https://api.twitter.com/1.1/statuses/retweets/" + $params["id"] + ".json",
+        $RestApi.AuthParams(), $params)
+        return $result
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name Favs -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "user_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["user_id"] = $i
+                            }
+                        }
+                        "screen_name" {
+                            $params["screen_name"] = $p[1]
+                        }
+                        "count" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["count"] = $i
+                            }
+                        }
+                        "since_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["since_id"] = $i
+                            }
+                        }
+                        "max_id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["max_id"] = $i
+                            }
+                        }
+                        "include_entities" {
+                            if($p[1].ToLower() -eq "true" -or $p[1].ToLower() -eq "false"){
+                                $params["include_entities"] = $p[1].ToLower()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.GetRequest("https://api.twitter.com/1.1/favorites/list.json",
+        $RestApi.AuthParams(), $params)
+        return $result
       } -PassThru 
+
+
 }
 
 <# display logic #>
@@ -699,13 +782,46 @@ function Command($api, $view){
                 }
             }
         }
+        "rts" {
+            $tw = $api.RTs($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tw)
+
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                for($i = $obj.Length - 1; $i -gt -1; $i--){
+                    $view.DisplayTweet($obj[$i])
+                }
+            }
+        }
+        "favs" {
+            $tw = $api.Favs($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tw)
+
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                for($i = $obj.Length - 1; $i -gt -1; $i--){
+                    $view.DisplayTweet($obj[$i])
+                }
+            }
+        }
+
+
         default{
             Write-Host "input valid command. ex) > home"
         }
     }
     Command $api $view
 }
-
 
 <# Enter your developer setting  #>
 $req = &$Request "{Consumer key}" "{Consumer secret}" `
