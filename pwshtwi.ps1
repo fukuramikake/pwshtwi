@@ -525,16 +525,11 @@ $RestApi = {
       } -PassThru 
 }
 
-<<<<<<< HEAD
 <# display logic #>
-=======
-<# 表示まわりはここに集める #>
->>>>>>> 4e4fc5fa66a828fbb4afc835ff740b3b8145da11
 $Display = {
 	$MyInvocation.MyCommand.ScriptBlock `
     | Add-Member -MemberType ScriptMethod -Name DisplayTweet -Value {
         param($tweet)
-<<<<<<< HEAD
         if($tweet.Keys.Contains("retweeted_status")){
             Write-Host($tweet["retweeted_status"]["user"]["name"] + " @" + $tweet["retweeted_status"]["user"]["screen_name"] `
             + " ReTweeted by " + $tweet["user"]["name"] + " @" + $tweet["user"]["screen_name"]) -ForegroundColor Cyan
@@ -568,29 +563,6 @@ $Display = {
 }
 
 function Command($api, $view){
-=======
-
-
-
-      } -PassThru `
-    | Add-Member -MemberType ScriptMethod -Name ReplaceSource -Value {
-        param($source)
-        return [System.Text.RegularExpressions.Regex]::Match($source,"rel=""nofollow"">(?<str>.+)</a>").Groups["str"].Value;
-      } -PassThru `
-    | Add-Member -MemberType ScriptMethod -Name ConvertTimeZone -Value {
-        param($twitterDate)
-        return [string][System.DateTimeOffset]::ParseExact($twitterDate, "ddd MMM dd HH:mm:ss zzz yyyy", `
-               [System.Globalization.CultureInfo]::InvariantCulture).LocalDateTime
-      } -PassThru `
-    | Add-Member -MemberType ScriptMethod -Name UnEscape -Value {
-        param($status)
-        return $status -replace "&gt;",">" -replace "&lt;","<" -replace "&amp;","&"
-      } -PassThru
-}
-
-
-function Command($api){
->>>>>>> 4e4fc5fa66a828fbb4afc835ff740b3b8145da11
     $command = Read-Host "Input command."
     $commands = -split $command
     switch($commands[0].ToLower())
@@ -733,6 +705,7 @@ function Command($api){
     }
     Command $api $view
 }
+
 
 <# Enter your developer setting  #>
 $req = &$Request "{Consumer key}" "{Consumer secret}" `
