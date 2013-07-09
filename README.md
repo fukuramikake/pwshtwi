@@ -2,6 +2,8 @@ pwshtwi
 =======
 # これは何
 Windows PowerShell でこっそりTwitterのタイムラインを見るためのスクリプトです。
+が、Twitterのディスプレイガイドラインにはまったく準拠していない（てか無理）ので、
+TwitterクライアントではなくTwitterのAPI動作確認ツールぐらいに考えていただけると。
 # 使い方
 ## Twitter の consumer 登録
 Consumer secretの隠し方がわからなかったので思い切ってself-serviceにしました。
@@ -12,7 +14,8 @@ Twitterの開発者向けページで登録して、consumer keyとconsumer secr
 そこに発番された文字列を記入してください。見ればわかる。
 ## 動かし方
 Windows PowerShell を立ち上げ、スクリプトを実行してください。
-動かない? ググれ。
+たぶん、スクリプトの実行の許可を一度設定する必要があります。あと.NET Framework 4.5が必要。
+なので、WindowsXPのようなレガシーOSでは動きません。
 # 認証
 スクリプトを実行すると、Twitterの連携認証ページが開くので、認証したらpinを入力してください。
 （スクリプトが入力待ち状態になってます）
@@ -80,15 +83,34 @@ screen_nameに対応。他はテストしてません。
 例) Input command.:usertl screen_name:fukuramikake
 @は要らないです。ついてても動くみたいですが。
 
+### rtsofme
+rtsofmeコマンドを入力すると、statuses/reteweet_of_me RestAPIをコールして、リツイートされた自分のつぶやきを表示します。
+あまり使えません。
+
+### rts
+rtsコマンドを入力すると、statuses/retweets/:id RestAPIをコールして、指定のつぶやきをリツイートした人を表示します。
+
+例) Input command.:rts id:123456789012345678
+
+### favs
+favsコマンドを入力すると、favofites/list RestAPIをコールして、指定のユーザのFavoritesを表示します。
+
+例) Input command.:favs screen_name:fukuramikake
+
+何も指定しないと、自分のFavoritesが表示されます。
+Favoritesされた自分のつぶやきが表示される機能ではありません。
+
+
 # 既知の不具合
-* たぶん無い
+* 結構潜んでそう
 
 
 # ToDo
 * タイムラインをもうちょい見やすく
 * ユーザー情報を表示できるように
 * ほとんどエラートラップしてないですね
-* RTされたのとかFavされたのを見れるようにしたい
+* タイムラインにRTされたカウントも表示したい
+* つぶやきやRTの取り消しができるようにする
 * idのコピペ大変なんだがどうにかならんかのー
 * Enterで即Mention飛んでくのやめたい。キケン。
 
