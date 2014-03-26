@@ -15,7 +15,7 @@ Twitterの開発者向けページで登録して、consumer keyとconsumer secr
 ## 動かし方
 Windows PowerShell を立ち上げ、スクリプトを実行してください。
 たぶん、スクリプトの実行の許可を一度設定する必要があります。あと.NET Framework 4.5が必要。
-なので、WindowsXPのようなレガシーOSでは動きません。
+なので、WindowsXPのようなレガシーOSでは動きません。Windows 7のようなデフォのPowerShellのCLRバージョンが2.0なPowerShellでも動かないので、最新のPowerShellを入れると良いです。
 # 認証
 スクリプトを実行すると、Twitterの連携認証ページが開くので、認証したらpinを入力してください。
 （スクリプトが入力待ち状態になってます）
