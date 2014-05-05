@@ -335,6 +335,28 @@ $RestApi = {
         $RestApi.AuthParams(), $params)
         return $result
       } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name Destroy -Value {
+        param($commands)
+        [Int64]$id = $null
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $id = $i
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.PostRequest("https://api.twitter.com/1.1/statuses/destroy/" + $id + ".json",
+        $RestApi.AuthParams(), @{})
+        return $result
+      } -PassThru `
     | Add-Member -MemberType ScriptMethod -Name Retweet -Value {
         param($commands)
         [Int64]$retweetId = $null
@@ -376,6 +398,28 @@ $RestApi = {
             }
         }
         $result = $request.PostRequest("https://api.twitter.com/1.1/favorites/create.json",
+        $RestApi.AuthParams(), $params)
+        return $result
+      } -PassThru `
+    | Add-Member -MemberType ScriptMethod -Name DestroyFavorite -Value {
+        param($commands)
+        $params = @{}
+        if($commands.Length -gt 1){
+            for($index = 1; $index -lt $commands.Length; $index++){
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if($p.Length -eq 2){
+                    switch(([string]$p[0]).ToLower()){
+                        "id" {
+                            $i = $p[1] -as [Int64]
+                            if($i){
+                                $params["id"] = $i
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $result = $request.PostRequest("https://api.twitter.com/1.1/favorites/destroy.json",
         $RestApi.AuthParams(), $params)
         return $result
       } -PassThru `
@@ -693,6 +737,19 @@ function Command($api, $view){
                 echo $obj["text"]
             }
         }
+        "destroy" {
+            $tl = $api.Destroy($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tl)
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                echo $obj["text"]
+            }
+        }
         "rt" {
             $tl = $api.Retweet($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
@@ -708,6 +765,19 @@ function Command($api, $view){
         }
         "fav" {
             $tl = $api.Favorite($commands)
+            $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+            $obj = $serializer.DeserializeObject($tl)
+            if($obj["errors"].Length -gt 0){
+                foreach($error in $obj["errors"]){
+                    Write-Host $error["message"]
+                }
+            }
+            else{
+                echo $obj["text"]
+            }
+        }
+        "unfav" {
+            $tl = $api.DestroyFavorite($commands)
             $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $obj = $serializer.DeserializeObject($tl)
             if($obj["errors"].Length -gt 0){
@@ -824,7 +894,7 @@ function Command($api, $view){
 }
 
 <# Enter your developer setting  #>
-$req = &$Request "{Consumer key}" "{Consumer secret}" `
+$req = &$Request "{api_key}" "{api secret}" `
                  "https://api.twitter.com/oauth/request_token" `
                  "https://api.twitter.com/oauth/authorize" `
                  "https://api.twitter.com/oauth/access_token"
