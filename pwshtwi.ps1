@@ -689,9 +689,7 @@ $Display = {
       } -PassThru
 }
 
-function Command($api, $view){
-    $command = Read-Host "Input command."
-    $commands = -split $command
+function Command($api, $view, $commands){
     switch($commands[0].ToLower())
     {
         "home" {
@@ -890,7 +888,6 @@ function Command($api, $view){
             Write-Host "input valid command. ex) > home"
         }
     }
-    Command $api $view
 }
 
 <# Enter your developer setting  #>
@@ -903,4 +900,10 @@ $authinfo = Login $req
 $rest = &$RestApi $req $authinfo["user_id"] $authinfo["oauth_token"] $authinfo["screen_name"] $authinfo["oauth_token_secret"]
 $disp = &$Display
 
-Command $rest $disp
+:loop while($true)
+{
+    $command = Read-Host "Input command."
+    $commands = -split $command
+    Command $rest $disp $commands
+    continue loop
+}
