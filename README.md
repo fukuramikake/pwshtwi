@@ -11,7 +11,7 @@ Twitterの開発者向けページで登録して、consumer keyとconsumer secr
 → https://dev.twitter.com/apps
 ## Consumer key、Consumer secretの記入
 スクリプトの最後の方にconsumer keyとconsumer secretを書くところがあるので、
-そこに発番された文字列を記入してください。見ればわかる。
+そこに発番された文字列を記入してください。Enter your developer setting とコメントがあるところです。
 ## 動かし方
 Windows PowerShell を立ち上げ、スクリプトを実行してください。
 たぶん、スクリプトの実行の許可を一度設定する必要があります。あと.NET Framework 4.5が必要。
