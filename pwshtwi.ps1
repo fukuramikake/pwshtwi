@@ -2,15 +2,18 @@
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web")
 [System.Reflection.Assembly]::LoadWithPartialName("System.Security")
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web.Extensions")
+[System.Reflection.Assembly]::LoadWithPartialName("System.Net.WebRequest")
 
 $Request = {
-	param([string]$consumerKey, [string]$consumerSecret, [string]$requestTokenUrl, [string]$authorizeUrl, [string]$accessTokenUrl)
+	param([string]$consumerKey, [string]$consumerSecret, [string]$requestTokenUrl, [string]$authorizeUrl, [string]$accessTokenUrl, [System.Net.Http.HttpClient]$httpClient, [System.Net.WebProxy]$webProxy)
 	$MyInvocation.MyCommand.ScriptBlock `
 	| Add-Member -MemberType NoteProperty -Name ConsumerKey      -Force -Value $consumerKey     -PassThru `
 	| Add-Member -MemberType NoteProperty -Name ConsumerSecret   -Force -Value $consumerSecret  -PassThru `
 	| Add-Member -MemberType NoteProperty -Name RequestTokenUrl  -Force -Value $requestTokenUrl -PassThru `
 	| Add-Member -MemberType NoteProperty -Name AuthorizeUrl     -Force -Value $authorizeUrl    -PassThru `
 	| Add-Member -MemberType NoteProperty -Name AccessTokenUrl   -Force -Value $accessTokenUrl  -PassThru `
+    | Add-Member -MemberType NoteProperty -Name Client           -Force -Value $httpClient      -PassThru `
+    | Add-Member -MemberType NoteProperty -Name WebProxy         -Force -Value $webProxy        -PassThru `
     | Add-Member -MemberType NoteProperty -Name OauthTokenSecret -Force -Value ""               -PassThru `
     | Add-Member -MemberType ScriptMethod -Name GetTimeStamp            -Value {
         return [int][double]::Parse($(Get-Date -date (Get-Date).ToUniversalTime()-uformat %s))
@@ -81,10 +84,32 @@ $Request = {
         if($post -ne ""){
             $post = $post.Substring(0,$post.Length - 1)
         }
-        $client = New-Object -TypeName System.Net.Http.HttpClient
-        $client.DefaultRequestHeaders.Authorization = $header
+        $Request.Client.DefaultRequestHeaders.Authorization = $header
         $httpContent = New-Object -TypeName System.Net.Http.StringContent($post, [System.Text.Encoding]::UTF8, "application/x-www-form-urlencoded")
-        $response = $client.PostAsync($url, $httpContent).Result
+
+        $task = $null
+        try{
+            $Error.Clear()
+            $task = $Request.Client.PostAsync($url, $httpContent)
+            $task.Wait()
+        }
+        catch [Exception]{
+            $exceptions = $Error[0].Exception.InnerException.InnerExceptions
+            foreach($exception in $exceptions){
+                if($exception -is [System.Net.Http.HttpRequestException]){
+                    $innerException = ([System.Net.Http.HttpRequestException]$exception).InnerException
+                    if($innerException -is [System.Net.WebException]){
+                        $webException = [System.Net.WebException]$innerException;
+                        [System.Net.HttpStatusCode]$statusCode = ([System.Net.HttpWebResponse]$webException.Response).StatusCode
+                        if(([Int32]$statusCode -eq 407) -and ($Request.WebProxy -ne $NULL)){
+                            throw "Proxy Authorization Required"
+                        }
+                    }
+                }
+            }
+        }
+
+        $response = $task.Result
         return $response.Content.ReadAsStringAsync().Result
       } -PassThru `
     | Add-Member -MemberType ScriptMethod -Name GetRequest -Value{
@@ -110,10 +135,33 @@ $Request = {
             $header += $key + "=""" + $value + ""","
         }
         $header += "oauth_signature=""" + $signature + """"
-        $client = New-Object -TypeName System.Net.Http.HttpClient
-        $client.DefaultRequestHeaders.Authorization = $header
-        $response = $client.GetAsync($url).Result
+        $Request.Client.DefaultRequestHeaders.Authorization = $header
+
+        $task = $null
+        try{
+            $Error.Clear()
+            $task = $Request.Client.GetAsync($url)
+            $task.Wait()
+        }
+        catch [Exception]{
+            $exceptions = $Error[0].Exception.InnerException.InnerExceptions
+            foreach($exception in $exceptions){
+                if($exception -is [System.Net.Http.HttpRequestException]){
+                    $innerException = ([System.Net.Http.HttpRequestException]$exception).InnerException
+                    if($innerException -is [System.Net.WebException]){
+                        $webException = [System.Net.WebException]$innerException;
+                        [System.Net.HttpStatusCode]$statusCode = ([System.Net.HttpWebResponse]$webException.Response).StatusCode
+                        if(([Int32]$statusCode -eq 407) -and ($Request.WebProxy -ne $NULL)){
+                            throw "Proxy Authorization Required"
+                        }
+                    }
+                }
+            }
+        }
+
+        $response = $task.Result
         return $response.Content.ReadAsStringAsync().Result
+
       } -PassThru 
 }
 
@@ -139,7 +187,7 @@ function Login($request){
         $url = $request.AuthorizeUrl + "?oauth_token=" + $oauth_token
         $ie = OpenInternetExplorer $url
         $pin = Read-Host "Input pin code."
-        $ie.Quit()
+        #$ie.Quit()
         $request.OauthTokenSecret = $oauth_token_secret
         <# Get Access Token #>
         $result = $request.PostRequest($request.AccessTokenUrl,@{
@@ -151,6 +199,7 @@ function Login($request){
             "oauth_timestamp" = $request.GetTimeStamp();
             "oauth_version" = "1.0"
         }, @{})
+        
         if( ($result -ne $null) -and ($result -ne "") ){
             $authinfo = @{
                 "oauth_token" = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token=(?<str>[0-9a-zA-Z_\\-]+)").Groups["str"].Value;
@@ -890,13 +939,66 @@ function Command($api, $view, $commands){
     }
 }
 
-<# Enter your developer setting  #>
-$req = &$Request "{api_key}" "{api secret}" `
-                 "https://api.twitter.com/oauth/request_token" `
-                 "https://api.twitter.com/oauth/authorize" `
-                 "https://api.twitter.com/oauth/access_token"
+function GetProxy([System.Uri]$targetHosts, [pscredential]$credentials){
+    if([System.Net.WebRequest]::GetSystemWebProxy().IsBypassed($targetHosts) -ne $TRUE){
+        $proxy = New-Object -TypeName System.Net.WebProxy @([System.Net.WebRequest]::GetSystemWebProxy().GetProxy($targetHosts))
+        $proxy.Credentials = New-Object System.Net.NetworkCredential @($credentials.UserName, $credentials.Password)
+        return $proxy
+    }
+}
 
-$authinfo = Login $req
+function GetClient([System.Net.WebProxy]$proxy){
+    $httpClient = $NULL
+    [System.Net.Http.HttpClientHandler]$httpClientHandler = $NULL
+    if($proxy -ne $NULL){
+        $httpClientHandler = New-Object -TypeName System.Net.Http.HttpClientHandler
+        $httpClientHandler.Proxy = $proxy
+        $httpClient = New-Object -TypeName System.Net.Http.HttpClient @($httpClientHandler)
+    }
+    else {
+        $httpClient = New-Object -TypeName System.Net.Http.HttpClient
+    }
+    return $httpClient
+}
+
+$targetHosts = New-Object System.Uri "https://api.twitter.com/"
+
+[System.Net.WebProxy]$proxy = GetProxy $targetHosts $NULL
+[System.Net.Http.HttpClient]$httpClient = GetClient $proxy
+
+<# Enter your developer setting  #>
+$consumerKey = ""
+$consumerSecret = ""
+
+$requestTokenUrl = "https://api.twitter.com/oauth/request_token"
+$authorizeUrl = "https://api.twitter.com/oauth/authorize"
+$accessTokenUrl = "https://api.twitter.com/oauth/access_token"
+
+$req = &$Request $consumerKey $consumerSecret $requestTokenUrl $authorizeUrl $accessTokenUrl $httpClient $proxy
+
+$authinfo = $NULL
+try {
+    $Error.Clear()
+    $authinfo = Login $req    
+}
+catch [Exception] {
+    Write-Host $Error
+    if($Error[0].Exception.InnerException.Message -eq "Proxy Authorization Required"){
+        $credentials = Get-Credential
+        $proxy = GetProxy $targetHosts $credentials
+        $httpClient = GetClient $proxy
+        $req.Client = $httpClient
+        $req.WebProxy = $proxy
+        try{
+            $Error.Clear()
+            $authinfo = Login $req
+        }
+        catch [Exception] {
+            Write-Host $Error
+        }
+    }
+}
+
 $rest = &$RestApi $req $authinfo["user_id"] $authinfo["oauth_token"] $authinfo["screen_name"] $authinfo["oauth_token_secret"]
 $disp = &$Display
 
