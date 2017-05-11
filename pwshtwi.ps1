@@ -176,7 +176,7 @@ function Login($request){
             "oauth_version" = "1.0"
         }, @{})
     if( ($result -ne $null) -and ($result -ne "") ){
-        $oauth_token = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token=(?<str>[0-9a-zA-Z\\-]+)").Groups["str"].Value
+        $oauth_token = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token=(?<str>[0-9a-zA-Z_\\-]+)").Groups["str"].Value
         $oauth_token_secret = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_token_secret=(?<str>[0-9a-zA-Z]+)").Groups["str"].Value
         $oauth_callback_confirmed = [System.Text.RegularExpressions.Regex]::Match($result,"oauth_callback_confirmed=(?<str>[0-9a-zA-Z]+)").Groups["str"].Value
         if($oauth_token -eq ""){
