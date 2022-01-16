@@ -1,5 +1,10 @@
 pwshtwi
 =======
+# PowerShell 7 版に移行しました。
+
+こちら↓  
+https://github.com/fukuramikake/we_need_types
+
 # これは何
 Windows PowerShell でこっそりTwitterのタイムラインを見るためのスクリプトです。
 が、Twitterのディスプレイガイドラインにはまったく準拠していない（てか無理）ので、
